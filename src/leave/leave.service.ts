@@ -257,18 +257,23 @@ export class LeaveService {
     }
 
     const approval = this.leaveApprovalRepository.create({
-      leaveRequestId,
+      leaveRequestId: leaveRequest.id,
       approverId,
       approverType: approveLeaveDto.approverType,
       action: ApprovalAction.APPROVE,
       comments: approveLeaveDto.comments,
     });
 
-    await this.leaveApprovalRepository.save(approval);
-    await this.leaveWorkflowRepository.save(workflow);
-    await this.leaveRequestRepository.save(leaveRequest);
+    try {
+      await this.leaveWorkflowRepository.save(workflow);
+      await this.leaveRequestRepository.save(leaveRequest);
+      await this.leaveApprovalRepository.save(approval);
+    } catch (error) {
+      console.error('Error saving entities:', error);
+      throw error;
+    }
 
-    return this.findOne(leaveRequestId);
+    return this.findOne(leaveRequest.id);
   }
 
   async reject(
@@ -319,7 +324,7 @@ export class LeaveService {
     leaveRequest.status = LeaveStatus.REJECTED;
 
     const approval = this.leaveApprovalRepository.create({
-      leaveRequestId,
+      leaveRequestId: leaveRequest.id,
       approverId,
       approverType: rejectLeaveDto.approverType,
       action: ApprovalAction.REJECT,
@@ -330,7 +335,7 @@ export class LeaveService {
     await this.leaveWorkflowRepository.save(workflow);
     await this.leaveRequestRepository.save(leaveRequest);
 
-    return this.findOne(leaveRequestId);
+    return this.findOne(leaveRequest.id);
   }
 
   async getApprovalHistory(

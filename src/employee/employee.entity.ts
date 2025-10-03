@@ -1,4 +1,4 @@
-import { LeaveRequest } from 'src/leave/entities/leave-request.entity';
+import { LeaveRequest } from '../leave/entities/leave-request.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,

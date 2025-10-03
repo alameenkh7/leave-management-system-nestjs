@@ -14,27 +14,27 @@ services:
     volumes:
       - lms_db_data:/var/lib/postgresql/data
       
-  # 2. NestJS Backend Application Service
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: lms_app
-    restart: always
-    depends_on:
-      - db
-    ports:
-      - "3000:3000"
-    volumes:
-      - .:/usr/src/app
-      - /usr/src/app/node_modules
-    environment:
-      DB_HOST: db 
-      DB_PORT: 5432
-      DB_USERNAME: ${DB_USERNAME:-lms_user}
-      DB_PASSWORD: ${DB_PASSWORD:-lms_password}
-      DB_DATABASE: ${DB_DATABASE:-leave_management}
-      JWT_SECRET: ${JWT_SECRET:-password}
+  # # 2. NestJS Backend Application Service
+  # app:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: lms_app
+  #   restart: always
+  #   depends_on:
+  #     - db
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     - .:/usr/src/app
+  #     - /usr/src/app/node_modules
+  #   environment:
+  #     DB_HOST: db 
+  #     DB_PORT: 5432
+  #     DB_USERNAME: ${DB_USERNAME:-lms_user}
+  #     DB_PASSWORD: ${DB_PASSWORD:-lms_password}
+  #     DB_DATABASE: ${DB_DATABASE:-leave_management}
+  #     JWT_SECRET: ${JWT_SECRET:-password}
 
 volumes:
   lms_db_data:
