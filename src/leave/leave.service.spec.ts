@@ -7,14 +7,23 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { LeaveService } from './leave.service';
-import { LeaveRequest, LeaveStatus, LeaveType } from './entities/leave-request.entity';
-import { LeaveApproval, ApproverType, ApprovalAction } from './entities/leave-approval.entity';
+import {
+  LeaveRequest,
+  LeaveStatus,
+  LeaveType,
+} from './entities/leave-request.entity';
+import {
+  LeaveApproval,
+  ApproverType,
+  ApprovalAction,
+} from './entities/leave-approval.entity';
 import { LeaveWorkflow, WorkflowStage } from './entities/leave-workflow.entity';
 import { EmployeeService } from '../employee/employee.service';
 import { CreateLeaveRequestDto } from './dto/create-leave-request.dto';
 import { ApproveLeaveDto } from './dto/approve-leave.dto';
 import { RejectLeaveDto } from './dto/reject-leave.dto';
 import { UpdateLeaveRequestDto } from './dto/update-leave-request.dto';
+import { Employee, EmployeeRole } from '../employee/employee.entity';
 
 describe('LeaveService', () => {
   let service: LeaveService;
@@ -23,13 +32,13 @@ describe('LeaveService', () => {
   let leaveWorkflowRepository: Repository<LeaveWorkflow>;
   let employeeService: EmployeeService;
 
-  const mockEmployee = {
+  const mockEmployee: Partial<Employee> = {
     id: 'employee-1',
     employeeCode: 'EMP001',
     name: 'John Doe',
     email: 'john@example.com',
     department: 'IT',
-    role: 'employee',
+    role: EmployeeRole.EMPLOYEE,
     reportingManagerId: 'manager-1',
     casualLeaveBalance: 12,
     sickLeaveBalance: 10,
@@ -37,38 +46,36 @@ describe('LeaveService', () => {
     isActive: true,
   };
 
-  const mockManager = {
+  const mockManager: Partial<Employee> = {
     id: 'manager-1',
     employeeCode: 'MGR001',
     name: 'Jane Manager',
     email: 'manager@example.com',
     department: 'IT',
-    role: 'reporting_manager',
-    reportingManagerId: null,
+    role: EmployeeRole.REPORTING_MANAGER,
     casualLeaveBalance: 12,
     sickLeaveBalance: 10,
     vacationLeaveBalance: 18,
     isActive: true,
   };
 
-  const mockHRManager = {
+  const mockHRManager: Partial<Employee> = {
     id: 'hr-1',
     employeeCode: 'HR001',
     name: 'HR Manager',
     email: 'hr@example.com',
     department: 'HR',
-    role: 'hr_manager',
-    reportingManagerId: null,
+    role: EmployeeRole.HR_MANAGER,
     casualLeaveBalance: 12,
     sickLeaveBalance: 10,
     vacationLeaveBalance: 18,
     isActive: true,
   };
 
-  const mockLeaveRequest = {
+  const mockLeaveRequest: Partial<LeaveRequest> = {
     id: 'leave-1',
     employeeId: 'employee-1',
-    employee: mockEmployee,
+    employee: mockEmployee as Employee,
     leaveType: LeaveType.CASUAL,
     startDate: new Date('2025-12-01'),
     endDate: new Date('2025-12-02'),
@@ -76,17 +83,15 @@ describe('LeaveService', () => {
     reason: 'Personal work',
     status: LeaveStatus.PENDING,
     appliedAt: new Date(),
-    documents: null,
     approvals: [],
-    workflow: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
 
-  const mockWorkflow = {
+  const mockWorkflow: Partial<LeaveWorkflow> = {
     id: 'workflow-1',
     leaveRequestId: 'leave-1',
-    leaveRequest: mockLeaveRequest,
+    leaveRequest: mockLeaveRequest as LeaveRequest,
     reportingManagerApproval: false,
     hrManagerApproval: false,
     currentStage: WorkflowStage.PENDING_RM,
@@ -172,11 +177,21 @@ describe('LeaveService', () => {
     it('should create a leave request successfully', async () => {
       const savedLeaveRequest = { ...mockLeaveRequest, id: 'new-leave-id' };
 
-      jest.spyOn(employeeService, 'findOne').mockResolvedValue(mockEmployee as any);
-      jest.spyOn(leaveRequestRepository, 'create').mockReturnValue(savedLeaveRequest as any);
-      jest.spyOn(leaveRequestRepository, 'save').mockResolvedValue(savedLeaveRequest as any);
-      jest.spyOn(leaveWorkflowRepository, 'create').mockReturnValue(mockWorkflow as any);
-      jest.spyOn(leaveWorkflowRepository, 'save').mockResolvedValue(mockWorkflow as any);
+      jest
+        .spyOn(employeeService, 'findOne')
+        .mockResolvedValue(mockEmployee as any);
+      jest
+        .spyOn(leaveRequestRepository, 'create')
+        .mockReturnValue(savedLeaveRequest as any);
+      jest
+        .spyOn(leaveRequestRepository, 'save')
+        .mockResolvedValue(savedLeaveRequest as any);
+      jest
+        .spyOn(leaveWorkflowRepository, 'create')
+        .mockReturnValue(mockWorkflow as any);
+      jest
+        .spyOn(leaveWorkflowRepository, 'save')
+        .mockResolvedValue(mockWorkflow as any);
 
       const result = await service.create('employee-1', createLeaveRequestDto);
 
@@ -195,7 +210,9 @@ describe('LeaveService', () => {
         endDate: '2023-01-02',
       };
 
-      jest.spyOn(employeeService, 'findOne').mockResolvedValue(mockEmployee as any);
+      jest
+        .spyOn(employeeService, 'findOne')
+        .mockResolvedValue(mockEmployee as any);
 
       await expect(service.create('employee-1', pastDateDto)).rejects.toThrow(
         BadRequestException,
@@ -209,11 +226,13 @@ describe('LeaveService', () => {
         endDate: '2025-12-01',
       };
 
-      jest.spyOn(employeeService, 'findOne').mockResolvedValue(mockEmployee as any);
+      jest
+        .spyOn(employeeService, 'findOne')
+        .mockResolvedValue(mockEmployee as any);
 
-      await expect(service.create('employee-1', invalidDateDto)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.create('employee-1', invalidDateDto),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException for insufficient leave balance', async () => {
@@ -222,11 +241,13 @@ describe('LeaveService', () => {
         casualLeaveBalance: 0,
       };
 
-      jest.spyOn(employeeService, 'findOne').mockResolvedValue(employeeWithNoBalance as any);
+      jest
+        .spyOn(employeeService, 'findOne')
+        .mockResolvedValue(employeeWithNoBalance as any);
 
-      await expect(service.create('employee-1', createLeaveRequestDto)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.create('employee-1', createLeaveRequestDto),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException for casual leave without advance notice', async () => {
@@ -238,7 +259,9 @@ describe('LeaveService', () => {
         endDate: yesterday.toISOString().split('T')[0],
       };
 
-      jest.spyOn(employeeService, 'findOne').mockResolvedValue(mockEmployee as any);
+      jest
+        .spyOn(employeeService, 'findOne')
+        .mockResolvedValue(mockEmployee as any);
 
       await expect(service.create('employee-1', yesterdayDto)).rejects.toThrow(
         BadRequestException,
@@ -253,11 +276,13 @@ describe('LeaveService', () => {
         endDate: '2025-12-05',
       };
 
-      jest.spyOn(employeeService, 'findOne').mockResolvedValue(mockEmployee as any);
+      jest
+        .spyOn(employeeService, 'findOne')
+        .mockResolvedValue(mockEmployee as any);
 
-      await expect(service.create('employee-1', longSickLeaveDto)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.create('employee-1', longSickLeaveDto),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -270,7 +295,9 @@ describe('LeaveService', () => {
         approvals: [],
       };
 
-      jest.spyOn(leaveRequestRepository, 'findOne').mockResolvedValue(leaveRequestWithRelations as any);
+      jest
+        .spyOn(leaveRequestRepository, 'findOne')
+        .mockResolvedValue(leaveRequestWithRelations as any);
 
       const result = await service.findOne('leave-1');
 
@@ -284,7 +311,9 @@ describe('LeaveService', () => {
     it('should throw NotFoundException when leave request not found', async () => {
       jest.spyOn(leaveRequestRepository, 'findOne').mockResolvedValue(null);
 
-      await expect(service.findOne('non-existent')).rejects.toThrow(NotFoundException);
+      await expect(service.findOne('non-existent')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -309,21 +338,30 @@ describe('LeaveService', () => {
         currentStage: WorkflowStage.PENDING_HR,
       };
 
-      jest.spyOn(employeeService, 'findOne').mockResolvedValue(mockManager as any);
-      jest.spyOn(leaveWorkflowRepository, 'findOne').mockResolvedValue(mockWorkflow as any);
+      jest
+        .spyOn(employeeService, 'findOne')
+        .mockResolvedValue(mockManager as any);
+      jest
+        .spyOn(leaveWorkflowRepository, 'findOne')
+        .mockResolvedValue(mockWorkflow as any);
       jest.spyOn(leaveApprovalRepository, 'create').mockReturnValue({} as any);
       jest.spyOn(leaveApprovalRepository, 'save').mockResolvedValue({} as any);
-      jest.spyOn(leaveWorkflowRepository, 'save').mockResolvedValue(updatedWorkflow as any);
+      jest
+        .spyOn(leaveWorkflowRepository, 'save')
+        .mockResolvedValue(updatedWorkflow as any);
       jest.spyOn(leaveRequestRepository, 'save').mockResolvedValue({} as any);
-      jest.spyOn(service, 'findOne').mockResolvedValueOnce({
-        ...mockLeaveRequest,
-        employee: { ...mockEmployee, reportingManagerId: 'manager-1' },
-        workflow: mockWorkflow,
-      } as any).mockResolvedValueOnce({
-        ...mockLeaveRequest,
-        status: LeaveStatus.PENDING_HR,
-        workflow: updatedWorkflow,
-      } as any);
+      jest
+        .spyOn(service, 'findOne')
+        .mockResolvedValueOnce({
+          ...mockLeaveRequest,
+          employee: { ...mockEmployee, reportingManagerId: 'manager-1' },
+          workflow: mockWorkflow,
+        } as any)
+        .mockResolvedValueOnce({
+          ...mockLeaveRequest,
+          status: LeaveStatus.PENDING_HR,
+          workflow: updatedWorkflow,
+        } as any);
 
       const result = await service.approve('leave-1', 'manager-1', approveDto);
 
@@ -348,21 +386,30 @@ describe('LeaveService', () => {
         currentStage: WorkflowStage.PENDING_HR,
       };
 
-      jest.spyOn(employeeService, 'findOne').mockResolvedValue(mockHRManager as any);
-      jest.spyOn(leaveWorkflowRepository, 'findOne').mockResolvedValue(workflowPendingHR as any);
+      jest
+        .spyOn(employeeService, 'findOne')
+        .mockResolvedValue(mockHRManager as any);
+      jest
+        .spyOn(leaveWorkflowRepository, 'findOne')
+        .mockResolvedValue(workflowPendingHR as any);
       jest.spyOn(leaveApprovalRepository, 'findOne').mockResolvedValue(null);
       jest.spyOn(leaveApprovalRepository, 'create').mockReturnValue({} as any);
       jest.spyOn(leaveApprovalRepository, 'save').mockResolvedValue({} as any);
       jest.spyOn(leaveWorkflowRepository, 'save').mockResolvedValue({} as any);
       jest.spyOn(leaveRequestRepository, 'save').mockResolvedValue({} as any);
-      jest.spyOn(employeeService, 'deductLeaveBalance').mockResolvedValue(undefined);
-      jest.spyOn(service, 'findOne').mockResolvedValueOnce({
-        ...mockLeaveRequest,
-        workflow: workflowPendingHR,
-      } as any).mockResolvedValueOnce({
-        ...mockLeaveRequest,
-        status: LeaveStatus.APPROVED,
-      } as any);
+      jest
+        .spyOn(employeeService, 'deductLeaveBalance')
+        .mockResolvedValue(undefined);
+      jest
+        .spyOn(service, 'findOne')
+        .mockResolvedValueOnce({
+          ...mockLeaveRequest,
+          workflow: workflowPendingHR,
+        } as any)
+        .mockResolvedValueOnce({
+          ...mockLeaveRequest,
+          status: LeaveStatus.APPROVED,
+        } as any);
 
       const result = await service.approve('leave-1', 'hr-1', hrApproveDto);
 
@@ -375,9 +422,9 @@ describe('LeaveService', () => {
     });
 
     it('should throw ForbiddenException when employee tries to approve own request', async () => {
-      await expect(service.approve('leave-1', 'employee-1', approveDto)).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(
+        service.approve('leave-1', 'employee-1', approveDto),
+      ).rejects.toThrow(ForbiddenException);
     });
 
     it('should throw BadRequestException when workflow stage is incorrect', async () => {
@@ -386,12 +433,16 @@ describe('LeaveService', () => {
         currentStage: WorkflowStage.PENDING_HR,
       };
 
-      jest.spyOn(employeeService, 'findOne').mockResolvedValue(mockManager as any);
-      jest.spyOn(leaveWorkflowRepository, 'findOne').mockResolvedValue(wrongStageWorkflow as any);
+      jest
+        .spyOn(employeeService, 'findOne')
+        .mockResolvedValue(mockManager as any);
+      jest
+        .spyOn(leaveWorkflowRepository, 'findOne')
+        .mockResolvedValue(wrongStageWorkflow as any);
 
-      await expect(service.approve('leave-1', 'manager-1', approveDto)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.approve('leave-1', 'manager-1', approveDto),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw ForbiddenException when user is not the reporting manager', async () => {
@@ -406,21 +457,27 @@ describe('LeaveService', () => {
         employee: { ...mockEmployee, reportingManagerId: 'manager-1' },
         workflow: workflowPendingRM,
       } as any);
-      jest.spyOn(employeeService, 'findOne').mockResolvedValue(otherManager as any);
-      jest.spyOn(leaveWorkflowRepository, 'findOne').mockResolvedValue(workflowPendingRM as any);
+      jest
+        .spyOn(employeeService, 'findOne')
+        .mockResolvedValue(otherManager as any);
+      jest
+        .spyOn(leaveWorkflowRepository, 'findOne')
+        .mockResolvedValue(workflowPendingRM as any);
 
-      await expect(service.approve('leave-1', 'other-manager', approveDto)).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(
+        service.approve('leave-1', 'other-manager', approveDto),
+      ).rejects.toThrow(ForbiddenException);
     });
 
     it('should throw NotFoundException when workflow not found', async () => {
-      jest.spyOn(employeeService, 'findOne').mockResolvedValue(mockManager as any);
+      jest
+        .spyOn(employeeService, 'findOne')
+        .mockResolvedValue(mockManager as any);
       jest.spyOn(leaveWorkflowRepository, 'findOne').mockResolvedValue(null);
 
-      await expect(service.approve('leave-1', 'manager-1', approveDto)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.approve('leave-1', 'manager-1', approveDto),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -444,20 +501,27 @@ describe('LeaveService', () => {
         currentStage: WorkflowStage.PENDING_RM,
       };
 
-      jest.spyOn(employeeService, 'findOne').mockResolvedValue(mockManager as any);
-      jest.spyOn(leaveWorkflowRepository, 'findOne').mockResolvedValue(workflowPendingRM as any);
+      jest
+        .spyOn(employeeService, 'findOne')
+        .mockResolvedValue(mockManager as any);
+      jest
+        .spyOn(leaveWorkflowRepository, 'findOne')
+        .mockResolvedValue(workflowPendingRM as any);
       jest.spyOn(leaveApprovalRepository, 'create').mockReturnValue({} as any);
       jest.spyOn(leaveApprovalRepository, 'save').mockResolvedValue({} as any);
       jest.spyOn(leaveWorkflowRepository, 'save').mockResolvedValue({} as any);
       jest.spyOn(leaveRequestRepository, 'save').mockResolvedValue({} as any);
-      jest.spyOn(service, 'findOne').mockResolvedValueOnce({
-        ...mockLeaveRequest,
-        employee: { ...mockEmployee, reportingManagerId: 'manager-1' },
-        workflow: workflowPendingRM,
-      } as any).mockResolvedValueOnce({
-        ...mockLeaveRequest,
-        status: LeaveStatus.REJECTED,
-      } as any);
+      jest
+        .spyOn(service, 'findOne')
+        .mockResolvedValueOnce({
+          ...mockLeaveRequest,
+          employee: { ...mockEmployee, reportingManagerId: 'manager-1' },
+          workflow: workflowPendingRM,
+        } as any)
+        .mockResolvedValueOnce({
+          ...mockLeaveRequest,
+          status: LeaveStatus.REJECTED,
+        } as any);
 
       const result = await service.reject('leave-1', 'manager-1', rejectDto);
 
@@ -482,19 +546,26 @@ describe('LeaveService', () => {
         currentStage: WorkflowStage.PENDING_HR,
       };
 
-      jest.spyOn(employeeService, 'findOne').mockResolvedValue(mockHRManager as any);
-      jest.spyOn(leaveWorkflowRepository, 'findOne').mockResolvedValue(workflowPendingHR as any);
+      jest
+        .spyOn(employeeService, 'findOne')
+        .mockResolvedValue(mockHRManager as any);
+      jest
+        .spyOn(leaveWorkflowRepository, 'findOne')
+        .mockResolvedValue(workflowPendingHR as any);
       jest.spyOn(leaveApprovalRepository, 'create').mockReturnValue({} as any);
       jest.spyOn(leaveApprovalRepository, 'save').mockResolvedValue({} as any);
       jest.spyOn(leaveWorkflowRepository, 'save').mockResolvedValue({} as any);
       jest.spyOn(leaveRequestRepository, 'save').mockResolvedValue({} as any);
-      jest.spyOn(service, 'findOne').mockResolvedValueOnce({
-        ...mockLeaveRequest,
-        workflow: workflowPendingHR,
-      } as any).mockResolvedValueOnce({
-        ...mockLeaveRequest,
-        status: LeaveStatus.REJECTED,
-      } as any);
+      jest
+        .spyOn(service, 'findOne')
+        .mockResolvedValueOnce({
+          ...mockLeaveRequest,
+          workflow: workflowPendingHR,
+        } as any)
+        .mockResolvedValueOnce({
+          ...mockLeaveRequest,
+          status: LeaveStatus.REJECTED,
+        } as any);
 
       const result = await service.reject('leave-1', 'hr-1', hrRejectDto);
 
@@ -502,9 +573,9 @@ describe('LeaveService', () => {
     });
 
     it('should throw ForbiddenException when employee tries to reject own request', async () => {
-      await expect(service.reject('leave-1', 'employee-1', rejectDto)).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(
+        service.reject('leave-1', 'employee-1', rejectDto),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 
@@ -520,7 +591,9 @@ describe('LeaveService', () => {
       };
 
       jest.spyOn(service, 'findOne').mockResolvedValue(mockLeaveRequest as any);
-      jest.spyOn(leaveRequestRepository, 'save').mockResolvedValue(updatedLeaveRequest as any);
+      jest
+        .spyOn(leaveRequestRepository, 'save')
+        .mockResolvedValue(updatedLeaveRequest as any);
 
       const result = await service.update('leave-1', 'employee-1', updateDto);
 
@@ -534,19 +607,21 @@ describe('LeaveService', () => {
         status: LeaveStatus.APPROVED,
       };
 
-      jest.spyOn(service, 'findOne').mockResolvedValue(approvedLeaveRequest as any);
+      jest
+        .spyOn(service, 'findOne')
+        .mockResolvedValue(approvedLeaveRequest as any);
 
-      await expect(service.update('leave-1', 'employee-1', updateDto)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.update('leave-1', 'employee-1', updateDto),
+      ).rejects.toThrow(BadRequestException);
     });
 
-    it('should throw ForbiddenException when trying to update another employee\'s request', async () => {
+    it("should throw ForbiddenException when trying to update another employee's request", async () => {
       jest.spyOn(service, 'findOne').mockResolvedValue(mockLeaveRequest as any);
 
-      await expect(service.update('leave-1', 'other-employee', updateDto)).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(
+        service.update('leave-1', 'other-employee', updateDto),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 
@@ -557,7 +632,9 @@ describe('LeaveService', () => {
 
       await service.remove('leave-1', 'employee-1');
 
-      expect(leaveRequestRepository.remove).toHaveBeenCalledWith(mockLeaveRequest);
+      expect(leaveRequestRepository.remove).toHaveBeenCalledWith(
+        mockLeaveRequest,
+      );
     });
 
     it('should throw BadRequestException when trying to delete non-pending leave', async () => {
@@ -566,14 +643,16 @@ describe('LeaveService', () => {
         status: LeaveStatus.APPROVED,
       };
 
-      jest.spyOn(service, 'findOne').mockResolvedValue(approvedLeaveRequest as any);
+      jest
+        .spyOn(service, 'findOne')
+        .mockResolvedValue(approvedLeaveRequest as any);
 
       await expect(service.remove('leave-1', 'employee-1')).rejects.toThrow(
         BadRequestException,
       );
     });
 
-    it('should throw ForbiddenException when trying to delete another employee\'s request', async () => {
+    it("should throw ForbiddenException when trying to delete another employee's request", async () => {
       jest.spyOn(service, 'findOne').mockResolvedValue(mockLeaveRequest as any);
 
       await expect(service.remove('leave-1', 'other-employee')).rejects.toThrow(
@@ -586,7 +665,9 @@ describe('LeaveService', () => {
     it('should return all leave requests for an employee', async () => {
       const leaveRequests = [mockLeaveRequest];
 
-      jest.spyOn(leaveRequestRepository, 'find').mockResolvedValue(leaveRequests as any);
+      jest
+        .spyOn(leaveRequestRepository, 'find')
+        .mockResolvedValue(leaveRequests as any);
 
       const result = await service.findAll('employee-1');
 
@@ -613,7 +694,9 @@ describe('LeaveService', () => {
         ...mockLeaveRequest,
         employee: mockEmployee,
       } as any);
-      jest.spyOn(leaveApprovalRepository, 'find').mockResolvedValue([mockApproval] as any);
+      jest
+        .spyOn(leaveApprovalRepository, 'find')
+        .mockResolvedValue([mockApproval] as any);
 
       const result = await service.getApprovalHistory('leave-1');
 
@@ -632,8 +715,12 @@ describe('LeaveService', () => {
         getMany: jest.fn().mockResolvedValue([mockLeaveRequest]),
       };
 
-      jest.spyOn(employeeService, 'findOne').mockResolvedValue(mockManager as any);
-      jest.spyOn(leaveRequestRepository, 'createQueryBuilder').mockReturnValue(mockQueryBuilder as any);
+      jest
+        .spyOn(employeeService, 'findOne')
+        .mockResolvedValue(mockManager as any);
+      jest
+        .spyOn(leaveRequestRepository, 'createQueryBuilder')
+        .mockReturnValue(mockQueryBuilder as any);
       jest.spyOn(leaveRequestRepository, 'find').mockResolvedValue([]);
 
       const result = await service.getPendingApprovals('manager-1');
@@ -642,10 +729,12 @@ describe('LeaveService', () => {
     });
 
     it('should return pending approvals for HR manager', async () => {
-      const pendingHRRequests = [{
-        ...mockLeaveRequest,
-        status: LeaveStatus.PENDING_HR,
-      }];
+      const pendingHRRequests = [
+        {
+          ...mockLeaveRequest,
+          status: LeaveStatus.PENDING_HR,
+        },
+      ];
 
       const mockQueryBuilder = {
         innerJoin: jest.fn().mockReturnThis(),
@@ -654,9 +743,15 @@ describe('LeaveService', () => {
         getMany: jest.fn().mockResolvedValue([]),
       };
 
-      jest.spyOn(employeeService, 'findOne').mockResolvedValue(mockHRManager as any);
-      jest.spyOn(leaveRequestRepository, 'createQueryBuilder').mockReturnValue(mockQueryBuilder as any);
-      jest.spyOn(leaveRequestRepository, 'find').mockResolvedValue(pendingHRRequests as any);
+      jest
+        .spyOn(employeeService, 'findOne')
+        .mockResolvedValue(mockHRManager as any);
+      jest
+        .spyOn(leaveRequestRepository, 'createQueryBuilder')
+        .mockReturnValue(mockQueryBuilder as any);
+      jest
+        .spyOn(leaveRequestRepository, 'find')
+        .mockResolvedValue(pendingHRRequests as any);
 
       const result = await service.getPendingApprovals('hr-1');
 

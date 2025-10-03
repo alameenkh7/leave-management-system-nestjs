@@ -23,6 +23,7 @@ import { ApproveLeaveDto } from './dto/approve-leave.dto';
 import { RejectLeaveDto } from './dto/reject-leave.dto';
 import { EmployeeService } from '../employee/employee.service';
 import { ApprovalHistoryResponseDto } from './dto/approval-history-response.dto';
+import { EmployeeRole } from '../employee/employee.entity';
 
 @Injectable()
 export class LeaveService {
@@ -228,7 +229,7 @@ export class LeaveService {
         );
       }
 
-      if (approver.role !== 'hr_manager') {
+      if (approver.role !== EmployeeRole.HR_MANAGER) {
         throw new ForbiddenException('You are not authorized as HR manager');
       }
 
@@ -315,7 +316,7 @@ export class LeaveService {
         );
       }
 
-      if (approver.role !== 'hr_manager') {
+      if (approver.role !== EmployeeRole.HR_MANAGER) {
         throw new ForbiddenException('You are not authorized as HR manager');
       }
     }
@@ -381,7 +382,10 @@ export class LeaveService {
 
     let leaveRequests: LeaveRequest[] = [];
 
-    if (approver.role === 'reporting_manager' || approver.role === 'admin') {
+    if (
+      approver.role === EmployeeRole.REPORTING_MANAGER ||
+      approver.role === EmployeeRole.ADMIN
+    ) {
       const pendingRM = await this.leaveRequestRepository
         .createQueryBuilder('leave')
         .innerJoin('leave.employee', 'employee')
@@ -392,7 +396,10 @@ export class LeaveService {
       leaveRequests = [...pendingRM];
     }
 
-    if (approver.role === 'hr_manager' || approver.role === 'admin') {
+    if (
+      approver.role === EmployeeRole.HR_MANAGER ||
+      approver.role === EmployeeRole.ADMIN
+    ) {
       const pendingHR = await this.leaveRequestRepository.find({
         where: { status: LeaveStatus.PENDING_HR },
         relations: ['employee'],

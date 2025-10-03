@@ -160,7 +160,7 @@ export class EmployeeService {
 
   async getLeaveBalance(employeeId: string): Promise<LeaveBalanceResponseDto> {
     const employee = await this.findOne(employeeId);
-    
+
     return {
       casualLeave: {
         total: 12,

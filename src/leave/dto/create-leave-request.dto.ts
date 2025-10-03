@@ -4,7 +4,6 @@ import {
   IsString,
   IsDateString,
   IsOptional,
-  Min,
 } from 'class-validator';
 import { LeaveType } from '../entities/leave-request.entity';
 
