@@ -28,6 +28,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Employee } from './employee.entity';
 
 @ApiTags('Employees')
+@ApiBearerAuth('JWT-auth')
 @Controller('employees')
 @UseInterceptors(ClassSerializerInterceptor)
 export class EmployeeController {
@@ -81,7 +82,6 @@ export class EmployeeController {
   }
 
   @Get('me')
-  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: 'Get my profile',
@@ -94,7 +94,6 @@ export class EmployeeController {
   }
 
   @Get('me/leave-balance')
-  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: 'Get my leave balance',
