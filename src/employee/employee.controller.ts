@@ -8,12 +8,16 @@ import {
   Delete,
   UseInterceptors,
   ClassSerializerInterceptor,
+  UseGuards,
 } from '@nestjs/common';
 import { EmployeeService } from './employee.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { EmployeeResponseDto } from './dto/employee-response.dto';
 import { LeaveBalanceResponseDto } from './dto/leave-balance-response.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Employee } from './employee.entity';
 
 @Controller('employees')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -36,6 +40,14 @@ export class EmployeeController {
   async findOne(@Param('id') id: string) {
     const employee = await this.employeeService.findOne(id);
     return new EmployeeResponseDto(employee);
+  }
+
+  @Get('me/leave-balance')
+  @UseGuards(JwtAuthGuard)
+  async getMyLeaveBalance(
+    @CurrentUser() user: Employee,
+  ): Promise<LeaveBalanceResponseDto> {
+    return this.employeeService.getLeaveBalance(user.id);
   }
 
   @Get(':id/leave-balance')

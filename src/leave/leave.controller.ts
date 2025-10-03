@@ -6,45 +6,38 @@ import {
   Patch,
   Param,
   Delete,
-  Request,
+  UseGuards,
 } from '@nestjs/common';
 import { LeaveService } from './leave.service';
 import { CreateLeaveRequestDto } from './dto/create-leave-request.dto';
 import { UpdateLeaveRequestDto } from './dto/update-leave-request.dto';
 import { ApproveLeaveDto } from './dto/approve-leave.dto';
 import { RejectLeaveDto } from './dto/reject-leave.dto';
-
-interface AuthenticatedRequest {
-  user?: {
-    id: string;
-  };
-  body: Record<string, any>;
-  query: Record<string, any>;
-}
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Employee } from '../employee/employee.entity';
 
 @Controller('leaves')
+@UseGuards(JwtAuthGuard)
 export class LeaveController {
   constructor(private readonly leaveService: LeaveService) {}
 
   @Post()
   create(
-    @Request() req: AuthenticatedRequest,
+    @CurrentUser() user: Employee,
     @Body() createLeaveRequestDto: CreateLeaveRequestDto,
   ) {
-    const employeeId: string = req.user?.id || (req.body.employeeId as string);
-    return this.leaveService.create(employeeId, createLeaveRequestDto);
+    return this.leaveService.create(user.id, createLeaveRequestDto);
   }
 
   @Get()
-  findAll(@Request() req: AuthenticatedRequest) {
-    const employeeId: string = req.user?.id || (req.query.employeeId as string);
-    return this.leaveService.findAll(employeeId);
+  findAll(@CurrentUser() user: Employee) {
+    return this.leaveService.findAll(user.id);
   }
 
   @Get('pending-approvals')
-  getPendingApprovals(@Request() req: AuthenticatedRequest) {
-    const approverId: string = req.user?.id || (req.query.approverId as string);
-    return this.leaveService.getPendingApprovals(approverId);
+  getPendingApprovals(@CurrentUser() user: Employee) {
+    return this.leaveService.getPendingApprovals(user.id);
   }
 
   @Get(':id')
@@ -60,36 +53,32 @@ export class LeaveController {
   @Patch(':id')
   update(
     @Param('id') id: string,
-    @Request() req: AuthenticatedRequest,
+    @CurrentUser() user: Employee,
     @Body() updateLeaveRequestDto: UpdateLeaveRequestDto,
   ) {
-    const employeeId: string = req.user?.id || (req.body.employeeId as string);
-    return this.leaveService.update(id, employeeId, updateLeaveRequestDto);
+    return this.leaveService.update(id, user.id, updateLeaveRequestDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
-    const employeeId: string = req.user?.id || (req.body.employeeId as string);
-    return this.leaveService.remove(id, employeeId);
+  remove(@Param('id') id: string, @CurrentUser() user: Employee) {
+    return this.leaveService.remove(id, user.id);
   }
 
   @Post(':id/approve')
   approve(
     @Param('id') id: string,
-    @Request() req: AuthenticatedRequest,
+    @CurrentUser() user: Employee,
     @Body() approveLeaveDto: ApproveLeaveDto,
   ) {
-    const approverId: string = req.user?.id || (req.body.approverId as string);
-    return this.leaveService.approve(id, approverId, approveLeaveDto);
+    return this.leaveService.approve(id, user.id, approveLeaveDto);
   }
 
   @Post(':id/reject')
   reject(
     @Param('id') id: string,
-    @Request() req: AuthenticatedRequest,
+    @CurrentUser() user: Employee,
     @Body() rejectLeaveDto: RejectLeaveDto,
   ) {
-    const approverId: string = req.user?.id || (req.body.approverId as string);
-    return this.leaveService.reject(id, approverId, rejectLeaveDto);
+    return this.leaveService.reject(id, user.id, rejectLeaveDto);
   }
 }
