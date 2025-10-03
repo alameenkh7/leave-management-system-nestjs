@@ -2,17 +2,27 @@ import { DataSource } from 'typeorm';
 import { Employee, EmployeeRole } from '../../employee/employee.entity';
 import { LeaveRequest, LeaveType, LeaveStatus } from '../../leave/entities/leave-request.entity';
 import { LeaveWorkflow, WorkflowStage } from '../../leave/entities/leave-workflow.entity';
+import { LeaveApproval } from '../../leave/entities/leave-approval.entity';
 import * as bcrypt from 'bcrypt';
 
 export async function seedDatabase(dataSource: DataSource) {
   const employeeRepository = dataSource.getRepository(Employee);
   const leaveRequestRepository = dataSource.getRepository(LeaveRequest);
   const leaveWorkflowRepository = dataSource.getRepository(LeaveWorkflow);
+  const leaveApprovalRepository = dataSource.getRepository(LeaveApproval);
 
-  // Clear existing data
-  await leaveWorkflowRepository.delete({});
-  await leaveRequestRepository.delete({});
-  await employeeRepository.delete({});
+  // Clear existing data using query runner to handle foreign keys
+  const queryRunner = dataSource.createQueryRunner();
+  await queryRunner.connect();
+
+  try {
+    await queryRunner.query('TRUNCATE TABLE "leave_approvals" CASCADE');
+    await queryRunner.query('TRUNCATE TABLE "leave_workflows" CASCADE');
+    await queryRunner.query('TRUNCATE TABLE "leave_requests" CASCADE');
+    await queryRunner.query('TRUNCATE TABLE "employees" CASCADE');
+  } finally {
+    await queryRunner.release();
+  }
 
   // Create employees
   const hashedPassword = await bcrypt.hash('password123', 10);
@@ -98,7 +108,6 @@ export async function seedDatabase(dataSource: DataSource) {
     },
   ];
 
-  const savedEmployees: Employee[] = [];
   for (const empData of employees) {
     const employee = employeeRepository.create({
       ...empData,
@@ -110,74 +119,20 @@ export async function seedDatabase(dataSource: DataSource) {
       sickLeaveBalance: 10,
       vacationLeaveBalance: 18,
     });
-    savedEmployees.push(await employeeRepository.save(employee));
-  }
-
-  // Create sample leave requests
-  const leaveRequests = [
-    {
-      employee: savedEmployees[0],
-      leaveType: LeaveType.CASUAL,
-      startDate: new Date('2025-12-15'),
-      endDate: new Date('2025-12-17'),
-      totalDays: 3,
-      reason: "Sister's wedding in Jaipur",
-      status: LeaveStatus.PENDING,
-    },
-    {
-      employee: savedEmployees[1],
-      leaveType: LeaveType.SICK,
-      startDate: new Date('2025-12-20'),
-      endDate: new Date('2025-12-20'),
-      totalDays: 1,
-      reason: 'Fever and medical consultation',
-      status: LeaveStatus.PENDING_HR,
-    },
-    {
-      employee: savedEmployees[2],
-      leaveType: LeaveType.VACATION,
-      startDate: new Date('2025-12-25'),
-      endDate: new Date('2025-12-30'),
-      totalDays: 4,
-      reason: 'Year-end family vacation',
-      status: LeaveStatus.APPROVED,
-    },
-  ];
-
-  for (const leaveData of leaveRequests) {
-    const leaveRequest = leaveRequestRepository.create({
-      employeeId: leaveData.employee.id,
-      leaveType: leaveData.leaveType,
-      startDate: leaveData.startDate,
-      endDate: leaveData.endDate,
-      totalDays: leaveData.totalDays,
-      reason: leaveData.reason,
-      status: leaveData.status,
-      appliedAt: new Date(),
-    });
-
-    const savedLeaveRequest = await leaveRequestRepository.save(leaveRequest);
-
-    // Create workflow
-    const workflow = leaveWorkflowRepository.create({
-      leaveRequestId: savedLeaveRequest.id,
-      reportingManagerApproval: leaveData.status !== LeaveStatus.PENDING,
-      hrManagerApproval: leaveData.status === LeaveStatus.APPROVED,
-      currentStage:
-        leaveData.status === LeaveStatus.PENDING
-          ? WorkflowStage.PENDING_RM
-          : leaveData.status === LeaveStatus.PENDING_HR
-          ? WorkflowStage.PENDING_HR
-          : WorkflowStage.COMPLETED,
-    });
-
-    await leaveWorkflowRepository.save(workflow);
+    await employeeRepository.save(employee);
   }
 
   console.log('✅ Database seeded successfully!');
-  console.log('Sample users:');
-  console.log('- Admin: admin@company.com / password123');
-  console.log('- HR Manager: amit.gupta@company.com / password123');
-  console.log('- Reporting Manager: priya.sharma@company.com / password123');
-  console.log('- Employee: rohit.singh@company.com / password123');
+  console.log('\n📋 Test Accounts Created:');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('Admin:              admin@company.com / password123');
+  console.log('HR Manager:         amit.gupta@company.com / password123');
+  console.log('Reporting Manager:  priya.sharma@company.com / password123');
+  console.log('Employee 1:         rohit.singh@company.com / password123');
+  console.log('Employee 2:         neha.patel@company.com / password123');
+  console.log('Employee 3:         suresh.kumar@company.com / password123');
+  console.log('Employee 4:         kavya.reddy@company.com / password123');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('\n🚀 Start the app: npm run start:dev');
+  console.log('📖 Swagger UI: http://localhost:3000/api\n');
 }
