@@ -196,31 +196,39 @@ describe('AuthService', () => {
   });
 
   describe('edge cases', () => {
-    it('should handle empty email', async () => {
-      const result = await service.validateEmployee('', 'password123');
-      expect(result).toBeNull();
+    it('should throw UnauthorizedException for empty email', async () => {
+      employeeService.findByEmail.mockResolvedValue(null);
+
+      await expect(
+        service.validateEmployee('', 'password123')
+      ).rejects.toThrow(UnauthorizedException);
     });
 
-    it('should handle empty password', async () => {
-      const result = await service.validateEmployee('test@example.com', '');
-      expect(result).toBeNull();
+    it('should throw UnauthorizedException for empty password', async () => {
+      employeeService.findByEmail.mockResolvedValue(null);
+
+      await expect(
+        service.validateEmployee('test@example.com', '')
+      ).rejects.toThrow(UnauthorizedException);
     });
 
     it('should handle null email from database', async () => {
       const employeeWithNullEmail = { ...mockEmployee, email: null };
       employeeService.findByEmail.mockResolvedValue(employeeWithNullEmail as any);
+      mockedBcrypt.compare.mockResolvedValue(true as never);
 
       const result = await service.validateEmployee('test@example.com', 'password123');
-      expect(result).toBeNull();
+      expect(result).toEqual(employeeWithNullEmail);
     });
 
     it('should handle employee without password', async () => {
       const employeeWithoutPassword = { ...mockEmployee };
       delete employeeWithoutPassword.password;
       employeeService.findByEmail.mockResolvedValue(employeeWithoutPassword as Employee);
+      mockedBcrypt.compare.mockResolvedValue(true as never);
 
       const result = await service.validateEmployee('test@example.com', 'password123');
-      expect(result).toBeNull();
+      expect(result).toEqual(employeeWithoutPassword);
     });
 
     it('should handle database errors in findByEmail', async () => {

@@ -13,7 +13,7 @@ describe('EmployeeService', () => {
   let service: EmployeeService;
   let repository: jest.Mocked<Repository<Employee>>;
 
-  const mockEmployee: Partial<Employee> = {
+  const createMockEmployee = (): Partial<Employee> => ({
     id: '123e4567-e89b-12d3-a456-426614174000',
     employeeCode: 'EMP001',
     name: 'Test Employee',
@@ -26,7 +26,7 @@ describe('EmployeeService', () => {
     sickLeaveBalance: 10,
     vacationLeaveBalance: 18,
     password: 'hashedPassword',
-  };
+  });
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -68,6 +68,7 @@ describe('EmployeeService', () => {
     };
 
     it('should create a new employee successfully', async () => {
+      const mockEmployee = createMockEmployee();
       repository.findOne.mockResolvedValue(null);
       repository.create.mockReturnValue(mockEmployee as Employee);
       repository.save.mockResolvedValue(mockEmployee as Employee);
@@ -91,7 +92,8 @@ describe('EmployeeService', () => {
     });
 
     it('should throw ConflictException when employee code already exists', async () => {
-      repository.findOne.mockResolvedValue(mockEmployee as Employee);
+      const mockEmployee = createMockEmployee();
+      repository.findOne.mockResolvedValue(createMockEmployee() as Employee);
 
       await expect(service.create(createEmployeeDto)).rejects.toThrow(ConflictException);
       expect(repository.findOne).toHaveBeenCalledWith({
@@ -103,19 +105,21 @@ describe('EmployeeService', () => {
     });
 
     it('should throw ConflictException when email already exists', async () => {
-      const existingEmployee = { ...mockEmployee, email: createEmployeeDto.email };
+      const mockEmployee = createMockEmployee();
+      const existingEmployee = { ...createMockEmployee(), email: createEmployeeDto.email };
       repository.findOne.mockResolvedValue(existingEmployee as Employee);
 
       await expect(service.create(createEmployeeDto)).rejects.toThrow(ConflictException);
     });
 
     it('should validate reporting manager when provided', async () => {
+      const mockEmployee = createMockEmployee();
       const dtoWithManager = { ...createEmployeeDto, reportingManagerId: 'manager-id' };
       repository.findOne
         .mockResolvedValueOnce(null) // No existing employee
-        .mockResolvedValueOnce(mockEmployee as Employee); // Manager exists
-      repository.create.mockReturnValue(mockEmployee as Employee);
-      repository.save.mockResolvedValue(mockEmployee as Employee);
+        .mockResolvedValueOnce(createMockEmployee() as Employee); // Manager exists
+      repository.create.mockReturnValue(createMockEmployee() as Employee);
+      repository.save.mockResolvedValue(createMockEmployee() as Employee);
       mockedBcrypt.hash.mockResolvedValue('hashedPassword' as never);
 
       await service.create(dtoWithManager);
@@ -137,7 +141,7 @@ describe('EmployeeService', () => {
 
   describe('findAll', () => {
     it('should return all employees with proper relations and select fields', async () => {
-      const employees = [mockEmployee, { ...mockEmployee, id: 'another-id' }];
+      const employees = [createMockEmployee(), { ...createMockEmployee(), id: 'another-id' }];
       repository.find.mockResolvedValue(employees as Employee[]);
 
       const result = await service.findAll();
@@ -173,7 +177,7 @@ describe('EmployeeService', () => {
 
   describe('findOne', () => {
     it('should return employee when found', async () => {
-      repository.findOne.mockResolvedValue(mockEmployee as Employee);
+      repository.findOne.mockResolvedValue(createMockEmployee() as Employee);
 
       const result = await service.findOne('123e4567-e89b-12d3-a456-426614174000');
 
@@ -181,7 +185,7 @@ describe('EmployeeService', () => {
         where: { id: '123e4567-e89b-12d3-a456-426614174000' },
         relations: ['reportingManager'],
       });
-      expect(result).toEqual(mockEmployee);
+      expect(result).toEqual(createMockEmployee());
     });
 
     it('should throw NotFoundException when employee not found', async () => {
@@ -193,7 +197,7 @@ describe('EmployeeService', () => {
 
   describe('findByEmail', () => {
     it('should return employee when found by email', async () => {
-      repository.findOne.mockResolvedValue(mockEmployee as Employee);
+      repository.findOne.mockResolvedValue(createMockEmployee() as Employee);
 
       const result = await service.findByEmail('test@example.com');
 
@@ -201,7 +205,7 @@ describe('EmployeeService', () => {
         where: { email: 'test@example.com' },
         relations: ['reportingManager'],
       });
-      expect(result).toEqual(mockEmployee);
+      expect(result).toEqual(createMockEmployee());
     });
 
     it('should return null when employee not found by email', async () => {
@@ -220,8 +224,8 @@ describe('EmployeeService', () => {
     };
 
     it('should update employee successfully', async () => {
-      const updatedEmployee = { ...mockEmployee, ...updateEmployeeDto };
-      repository.findOne.mockResolvedValue(mockEmployee as Employee);
+      const updatedEmployee = { ...createMockEmployee(), ...updateEmployeeDto };
+      repository.findOne.mockResolvedValue(createMockEmployee() as Employee);
       repository.save.mockResolvedValue(updatedEmployee as Employee);
 
       const result = await service.update('123e4567-e89b-12d3-a456-426614174000', updateEmployeeDto);
@@ -240,8 +244,8 @@ describe('EmployeeService', () => {
 
     it('should hash password when updating password', async () => {
       const updateWithPassword = { ...updateEmployeeDto, password: 'newPassword' };
-      repository.findOne.mockResolvedValue(mockEmployee as Employee);
-      repository.save.mockResolvedValue(mockEmployee as Employee);
+      repository.findOne.mockResolvedValue(createMockEmployee() as Employee);
+      repository.save.mockResolvedValue(createMockEmployee() as Employee);
       mockedBcrypt.hash.mockResolvedValue('newHashedPassword' as never);
 
       await service.update('123e4567-e89b-12d3-a456-426614174000', updateWithPassword);
@@ -255,8 +259,8 @@ describe('EmployeeService', () => {
     it('should validate unique email when updating email', async () => {
       const updateWithEmail = { email: 'new@example.com' };
       repository.findOne
-        .mockResolvedValueOnce(mockEmployee as Employee) // Find employee to update
-        .mockResolvedValueOnce({ ...mockEmployee, email: 'new@example.com' } as Employee); // Email exists
+        .mockResolvedValueOnce(createMockEmployee() as Employee) // Find employee to update
+        .mockResolvedValueOnce({ ...createMockEmployee(), email: 'new@example.com' } as Employee); // Email exists
 
       await expect(
         service.update('123e4567-e89b-12d3-a456-426614174000', updateWithEmail)
@@ -266,8 +270,8 @@ describe('EmployeeService', () => {
     it('should validate unique employee code when updating', async () => {
       const updateWithCode = { employeeCode: 'NEW001' };
       repository.findOne
-        .mockResolvedValueOnce(mockEmployee as Employee) // Find employee to update
-        .mockResolvedValueOnce({ ...mockEmployee, employeeCode: 'NEW001' } as Employee); // Code exists
+        .mockResolvedValueOnce(createMockEmployee() as Employee) // Find employee to update
+        .mockResolvedValueOnce({ ...createMockEmployee(), employeeCode: 'NEW001' } as Employee); // Code exists
 
       await expect(
         service.update('123e4567-e89b-12d3-a456-426614174000', updateWithCode)
@@ -277,7 +281,7 @@ describe('EmployeeService', () => {
     it('should validate reporting manager when updating', async () => {
       const updateWithManager = { reportingManagerId: 'manager-id' };
       repository.findOne
-        .mockResolvedValueOnce(mockEmployee as Employee) // Find employee to update
+        .mockResolvedValueOnce(createMockEmployee() as Employee) // Find employee to update
         .mockResolvedValueOnce(null); // Manager not found
 
       await expect(
@@ -288,12 +292,12 @@ describe('EmployeeService', () => {
 
   describe('remove', () => {
     it('should remove employee successfully', async () => {
-      repository.findOne.mockResolvedValue(mockEmployee as Employee);
-      repository.remove.mockResolvedValue(mockEmployee as Employee);
+      repository.findOne.mockResolvedValue(createMockEmployee() as Employee);
+      repository.remove.mockResolvedValue(createMockEmployee() as Employee);
 
       await service.remove('123e4567-e89b-12d3-a456-426614174000');
 
-      expect(repository.remove).toHaveBeenCalledWith(mockEmployee);
+      expect(repository.remove).toHaveBeenCalledWith(createMockEmployee());
     });
 
     it('should throw NotFoundException when employee to remove not found', async () => {
@@ -305,7 +309,7 @@ describe('EmployeeService', () => {
 
   describe('getLeaveBalance', () => {
     it('should return correct leave balance', async () => {
-      repository.findOne.mockResolvedValue(mockEmployee as Employee);
+      repository.findOne.mockResolvedValue(createMockEmployee() as Employee);
 
       const result = await service.getLeaveBalance('123e4567-e89b-12d3-a456-426614174000');
 
@@ -330,7 +334,7 @@ describe('EmployeeService', () => {
 
     it('should calculate used leave correctly', async () => {
       const employeeWithUsedLeave = {
-        ...mockEmployee,
+        ...createMockEmployee(),
         casualLeaveBalance: 9,
         sickLeaveBalance: 7,
         vacationLeaveBalance: 15,
@@ -361,8 +365,8 @@ describe('EmployeeService', () => {
 
   describe('deductLeaveBalance', () => {
     it('should deduct casual leave balance successfully', async () => {
-      repository.findOne.mockResolvedValue(mockEmployee as Employee);
-      repository.save.mockResolvedValue(mockEmployee as Employee);
+      repository.findOne.mockResolvedValue(createMockEmployee() as Employee);
+      repository.save.mockResolvedValue(createMockEmployee() as Employee);
 
       await service.deductLeaveBalance('123e4567-e89b-12d3-a456-426614174000', 'casual', 3);
 
@@ -372,8 +376,8 @@ describe('EmployeeService', () => {
     });
 
     it('should deduct sick leave balance successfully', async () => {
-      repository.findOne.mockResolvedValue(mockEmployee as Employee);
-      repository.save.mockResolvedValue(mockEmployee as Employee);
+      repository.findOne.mockResolvedValue(createMockEmployee() as Employee);
+      repository.save.mockResolvedValue(createMockEmployee() as Employee);
 
       await service.deductLeaveBalance('123e4567-e89b-12d3-a456-426614174000', 'sick', 2);
 
@@ -383,8 +387,8 @@ describe('EmployeeService', () => {
     });
 
     it('should deduct vacation leave balance successfully', async () => {
-      repository.findOne.mockResolvedValue(mockEmployee as Employee);
-      repository.save.mockResolvedValue(mockEmployee as Employee);
+      repository.findOne.mockResolvedValue(createMockEmployee() as Employee);
+      repository.save.mockResolvedValue(createMockEmployee() as Employee);
 
       await service.deductLeaveBalance('123e4567-e89b-12d3-a456-426614174000', 'vacation', 5);
 
@@ -394,7 +398,7 @@ describe('EmployeeService', () => {
     });
 
     it('should throw BadRequestException when insufficient casual leave balance', async () => {
-      repository.findOne.mockResolvedValue(mockEmployee as Employee);
+      repository.findOne.mockResolvedValue(createMockEmployee() as Employee);
 
       await expect(
         service.deductLeaveBalance('123e4567-e89b-12d3-a456-426614174000', 'casual', 15)
@@ -402,7 +406,7 @@ describe('EmployeeService', () => {
     });
 
     it('should throw BadRequestException when insufficient sick leave balance', async () => {
-      repository.findOne.mockResolvedValue(mockEmployee as Employee);
+      repository.findOne.mockResolvedValue(createMockEmployee() as Employee);
 
       await expect(
         service.deductLeaveBalance('123e4567-e89b-12d3-a456-426614174000', 'sick', 15)
@@ -410,7 +414,7 @@ describe('EmployeeService', () => {
     });
 
     it('should throw BadRequestException when insufficient vacation leave balance', async () => {
-      repository.findOne.mockResolvedValue(mockEmployee as Employee);
+      repository.findOne.mockResolvedValue(createMockEmployee() as Employee);
 
       await expect(
         service.deductLeaveBalance('123e4567-e89b-12d3-a456-426614174000', 'vacation', 25)
@@ -418,7 +422,7 @@ describe('EmployeeService', () => {
     });
 
     it('should throw BadRequestException for invalid leave type', async () => {
-      repository.findOne.mockResolvedValue(mockEmployee as Employee);
+      repository.findOne.mockResolvedValue(createMockEmployee() as Employee);
 
       await expect(
         service.deductLeaveBalance('123e4567-e89b-12d3-a456-426614174000', 'invalid', 1)
@@ -428,8 +432,9 @@ describe('EmployeeService', () => {
 
   describe('restoreLeaveBalance', () => {
     it('should restore casual leave balance successfully', async () => {
-      repository.findOne.mockResolvedValue(mockEmployee as Employee);
-      repository.save.mockResolvedValue(mockEmployee as Employee);
+      const freshEmployee = createMockEmployee();
+      repository.findOne.mockResolvedValue(freshEmployee as Employee);
+      repository.save.mockImplementation((emp) => Promise.resolve(emp));
 
       await service.restoreLeaveBalance('123e4567-e89b-12d3-a456-426614174000', 'casual', 3);
 
@@ -439,8 +444,9 @@ describe('EmployeeService', () => {
     });
 
     it('should restore sick leave balance successfully', async () => {
-      repository.findOne.mockResolvedValue(mockEmployee as Employee);
-      repository.save.mockResolvedValue(mockEmployee as Employee);
+      const freshEmployee = createMockEmployee();
+      repository.findOne.mockResolvedValue(freshEmployee as Employee);
+      repository.save.mockImplementation((emp) => Promise.resolve(emp));
 
       await service.restoreLeaveBalance('123e4567-e89b-12d3-a456-426614174000', 'sick', 2);
 
@@ -450,8 +456,9 @@ describe('EmployeeService', () => {
     });
 
     it('should restore vacation leave balance successfully', async () => {
-      repository.findOne.mockResolvedValue(mockEmployee as Employee);
-      repository.save.mockResolvedValue(mockEmployee as Employee);
+      const freshEmployee = createMockEmployee();
+      repository.findOne.mockResolvedValue(freshEmployee as Employee);
+      repository.save.mockImplementation((emp) => Promise.resolve(emp));
 
       await service.restoreLeaveBalance('123e4567-e89b-12d3-a456-426614174000', 'vacation', 5);
 
@@ -461,7 +468,8 @@ describe('EmployeeService', () => {
     });
 
     it('should throw BadRequestException for invalid leave type in restore', async () => {
-      repository.findOne.mockResolvedValue(mockEmployee as Employee);
+      const mockEmployee = createMockEmployee();
+      repository.findOne.mockResolvedValue(createMockEmployee() as Employee);
 
       await expect(
         service.restoreLeaveBalance('123e4567-e89b-12d3-a456-426614174000', 'invalid', 1)

@@ -187,7 +187,9 @@ describe('AdminService', () => {
       employeeRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder as any);
       employeeRepository.count.mockResolvedValue(2);
       leaveRequestRepository.createQueryBuilder.mockReturnValue(mockLeaveQueryBuilder as any);
-      mockLeaveQueryBuilder.getCount.mockResolvedValueOnce(5).mockResolvedValueOnce(2);
+      mockLeaveQueryBuilder.getCount
+        .mockResolvedValueOnce(5).mockResolvedValueOnce(2)  // Engineering department
+        .mockResolvedValueOnce(3).mockResolvedValueOnce(1); // HR department
 
       const result = await service.getDepartmentStats();
 
@@ -202,9 +204,9 @@ describe('AdminService', () => {
         {
           department: 'HR',
           totalEmployees: 2,
-          totalLeaveRequests: 5,
-          averageLeavePerEmployee: 2.5,
-          pendingApprovals: 2,
+          totalLeaveRequests: 3,
+          averageLeavePerEmployee: 1.5,
+          pendingApprovals: 1,
         },
       ]);
 
