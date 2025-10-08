@@ -4,6 +4,8 @@ import {
   IsString,
   IsDateString,
   IsOptional,
+  MinLength,
+  MaxLength,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { LeaveType } from '../entities/leave-request.entity';
@@ -45,6 +47,8 @@ export class CreateLeaveRequestDto {
   })
   @IsString()
   @IsNotEmpty()
+  @MinLength(5, { message: 'Reason must be at least 5 characters long' })
+  @MaxLength(500, { message: 'Reason cannot exceed 500 characters' })
   reason: string;
 
   @ApiProperty({
