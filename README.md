@@ -1,5 +1,6 @@
 # 🏢 Office Leave Management System
 
+
 A comprehensive Leave Management System built with NestJS, featuring dual approval workflow (Reporting Manager → HR Manager) commonly used in Indian IT companies.
 
 ## 🚀 Features
