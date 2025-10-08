@@ -15,6 +15,24 @@ import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { LeaveBalanceResponseDto } from './dto/leave-balance-response.dto';
 import * as bcrypt from 'bcrypt';
 
+/**
+ * Leave type constants for type safety and consistency
+ */
+const LEAVE_TYPES = {
+  CASUAL: 'casual',
+  SICK: 'sick',
+  VACATION: 'vacation',
+} as const;
+
+/**
+ * Default leave allocation per year
+ */
+const LEAVE_ALLOCATION = {
+  CASUAL: 12,
+  SICK: 10,
+  VACATION: 18,
+} as const;
+
 @Injectable()
 export class EmployeeService {
   constructor(
@@ -155,23 +173,28 @@ export class EmployeeService {
     await this.employeeRepository.remove(employee);
   }
 
+  /**
+   * Retrieves the leave balance for an employee
+   * @param employeeId - The ID of the employee
+   * @returns Leave balance information including total, used, and remaining days
+   */
   async getLeaveBalance(employeeId: string): Promise<LeaveBalanceResponseDto> {
     const employee = await this.findOne(employeeId);
 
     return {
       casualLeave: {
-        total: 12,
-        used: 12 - employee.casualLeaveBalance,
+        total: LEAVE_ALLOCATION.CASUAL,
+        used: LEAVE_ALLOCATION.CASUAL - employee.casualLeaveBalance,
         remaining: employee.casualLeaveBalance,
       },
       sickLeave: {
-        total: 10,
-        used: 10 - employee.sickLeaveBalance,
+        total: LEAVE_ALLOCATION.SICK,
+        used: LEAVE_ALLOCATION.SICK - employee.sickLeaveBalance,
         remaining: employee.sickLeaveBalance,
       },
       vacationLeave: {
-        total: 18,
-        used: 18 - employee.vacationLeaveBalance,
+        total: LEAVE_ALLOCATION.VACATION,
+        used: LEAVE_ALLOCATION.VACATION - employee.vacationLeaveBalance,
         remaining: employee.vacationLeaveBalance,
       },
     };
@@ -232,5 +255,30 @@ export class EmployeeService {
     }
 
     await this.employeeRepository.save(employee);
+  }
+
+  /**
+   * Validates if an employee has sufficient leave balance
+   * @param employee - The employee entity
+   * @param leaveType - Type of leave (casual, sick, vacation)
+   * @param days - Number of days requested
+   * @returns true if balance is sufficient
+   * @throws BadRequestException if balance is insufficient or leave type is invalid
+   */
+  private validateLeaveBalance(
+    employee: Employee,
+    leaveType: string,
+    days: number,
+  ): boolean {
+    switch (leaveType) {
+      case LEAVE_TYPES.CASUAL:
+        return employee.casualLeaveBalance >= days;
+      case LEAVE_TYPES.SICK:
+        return employee.sickLeaveBalance >= days;
+      case LEAVE_TYPES.VACATION:
+        return employee.vacationLeaveBalance >= days;
+      default:
+        throw new BadRequestException('Invalid leave type');
+    }
   }
 }
